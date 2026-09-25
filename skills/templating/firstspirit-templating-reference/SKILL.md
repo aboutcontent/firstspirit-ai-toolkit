@@ -3,7 +3,8 @@ name: firstspirit-templating-reference
 description: >-
   Concrete lookup reference for FirstSpirit template development: the template
   language ($CMS_VALUE$, $CMS_IF$, $CMS_FOR$, $CMS_REF$, $CMS_RENDER$, system
-  objects, string operations), GOM form/input components (CMS_INPUT_*,
+  objects, string operations, the Navigation and PageGroup header functions,
+  content projection / dataset pages), GOM form/input components (CMS_INPUT_*,
   FS_REFERENCE, FS_CATALOG, FS_INDEX, FS_DATASET) and the datatype each yields,
   Rules (validation, visibility, editability, value), identifier and casing
   rules, and deprecated→current components. Use whenever you need exact
@@ -20,9 +21,9 @@ description: >-
   the template-design guidelines for design judgement and naming conventions, and
   firstspirit-scripting for BeanShell / Access-API.
 metadata:
-  source-commit: "6ad95ec"
-  published: "2026-09-15"
-  toolkit-version: "0.2.0"
+  source-commit: "30f3b27"
+  published: "2026-09-25"
+  toolkit-version: "0.2.1"
 ---
 
 > **Beta.** Early public release. Feedback welcome; behaviour and structure may change.
@@ -115,6 +116,9 @@ Loaded on demand — read the file that matches the question.
 | `system-objects.md` | `#global` / `#nav` / `#row` / page / section / dataset context |
 | `string-operations.md` | string methods + output escaping / XSS safety |
 | `dom-media.md` | DOM output; format templates in their DOM-styling role; `$CMS_REF$` media |
+| `navigation-function.md` | the `Navigation` header function: the six hooks and their order, `expansionVisibility` values, `wholePathSelected`, `#nav`, breadcrumb |
+| `page-group.md` | the `PageGroup` header function: previous/next/first/last fragments, table of contents, `groupSize` |
+| `content-projection.md` | datasets rendered as pages: PageRef → page → content section → table template, entries per page, `#global.pageParams`, detail pages |
 | `real-world.md` | production output shapes |
 
 > `references/common-patterns.md` (Java Access API / BeanShell) is **transitional** — it is out

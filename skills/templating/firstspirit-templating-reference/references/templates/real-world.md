@@ -77,6 +77,8 @@ Key points:
 - `expansionVisibility="all"` renders all levels regardless of current page
 - `beginHTML`/`endHTML` wrap each item, `innerBeginHTML`/`innerEndHTML` wrap sub-level containers
 - `unselectedHTML` vs `selectedHTML` distinguish current page from others
+- All parameters, the other five `expansionVisibility` values, `wholePathSelected`, the per-node
+  hook order and a breadcrumb: [navigation-function.md](navigation-function.md)
 
 ---
 
@@ -316,7 +318,9 @@ $CMS_END_TRIM$
 
 Key points:
 - `prm_dataset.getTableTemplate().getUid()` returns the fully qualified table template UID
-- `$CMS_REF(pageref, contentId: entityId)$` generates a content projection URL
+- `$CMS_REF(pageref, contentId: entityId)$` generates a content projection URL — the projection
+  chain itself (entries per page, generated page group) is in
+  [content-projection.md](content-projection.md)
 - `prm_dataset.getEntity().getId()` gets the dataset's entity ID
 - Default case (between SWITCH and first CASE) logs a warning for unknown types
 
@@ -343,6 +347,73 @@ Key points:
 - Use `$CMS_SET(block)$...$CMS_END_SET$` to capture a render call's output into a variable
 - `style:true` flag is NOT needed when passing custom parameters
 
+### The contract header and the style map
+
+A format template used from many places (the CTA button above is called from eleven templates
+on one site `[observed]`) needs the two things a function signature would give it: a documented
+parameter list and defaults.
+
+```
+$-- cta_button
+   prm_link   (Link, required)  the link the editor chose; rendering is skipped when empty
+   prm_style  (String)          button_xl | button_l | button_m | text_l ; default button_m
+   usage: $CMS_RENDER(template:"cta_button", prm_link: st_link, prm_style: "button_l")$ --$
+$CMS_SET(set_styles_map, {
+  "button_xl": {"link": "…", "icon": "…"},
+  "button_m":  {"link": "…", "icon": "…"},
+  "text_l":    {"link": "…", "icon": "…"}
+})$
+$CMS_SET(set_style, if(!prm_style.isEmpty, prm_style, "button_m"))$
+$CMS_IF(!prm_link.isEmpty)$
+  <a class="$CMS_VALUE(set_styles_map[set_style].link)$" …>
+$CMS_ELSE$
+  $CMS_VALUE(#global.logWarning("cta_button: missing prm_link in " + #global.section.name))$
+$CMS_END_IF$
+```
+
+- The header comment is the only signature the template will ever have (nothing validates
+  parameters; see `composition.md`). Put it first, keep it current.
+- A **map lookup** replaces a chain of `$CMS_IF(set_style == "…")$`; adding a variant is one
+  line, and an unknown variant fails visibly (`null` classes) instead of silently falling
+  through.
+- Log the skipped render with `#global.logWarning` so the generation log names the section,
+  instead of emitting nothing and leaving the editor guessing.
+
+### Compose once, place in the layout branch
+
+When a section has layout variants (image left / right / stacked), build each part into a
+variable **once**, then let the layout branches only arrange them:
+
+```
+$CMS_SET(set_text)$
+  <h2>$CMS_VALUE(st_headline.convert2)$</h2>
+  $CMS_VALUE(st_text)$
+$CMS_END_SET$
+$CMS_SET(set_img)$<img src="$CMS_REF(st_image, res: set_res, abs: 1)$" $CMS_RENDER(template:"render_image_alt_text", prm_image: st_image)$ />$CMS_END_SET$
+
+$CMS_SWITCH(st_layout)$
+  $CMS_CASE("image_left")$  <div class="grid">$CMS_VALUE(set_img)$$CMS_VALUE(set_text)$</div>
+  $CMS_CASE("image_right")$ <div class="grid">$CMS_VALUE(set_text)$$CMS_VALUE(set_img)$</div>
+  $CMS_CASE("stacked")$     $CMS_VALUE(set_img)$$CMS_VALUE(set_text)$
+$CMS_END_SWITCH$
+```
+
+The alternative, three copies of the markup that drift apart, is how a site ends up with one
+layout variant that has no `editorId()` and cannot be edited in ContentCreator `[observed]`.
+
+### Collect scripts once per template type
+
+A section that needs a script tag registers it under a key derived from its own template, so
+ten instances on a page emit the tag once:
+
+```
+$CMS_RENDER(template:"javascript_collector", prm_action: "add", prm_jSId: #this.template.uid, prm_jSStatement: set_script)$
+```
+
+`#this.template.uid` is stable and unique per template, which makes it the natural
+de-duplication key; the collector itself is a project-specific format template that writes into
+a page-level context (`composition.md` → Getting a value back) `[observed]`.
+
 ---
 
 ## Smart Headline (H1 Management)
@@ -358,7 +429,7 @@ $CMS_IF(!prm_headline.isEmpty())$
   $CMS_END_IF$
   <$CMS_VALUE(tag)$
     $CMS_IF(!prm_cssClasses.isEmpty())$class="$CMS_VALUE(prm_cssClasses)$"$CMS_END_IF$>
-    $CMS_VALUE(prm_headline.convert2())$
+    $CMS_VALUE(prm_headline.convert2())$   $-- HTML-escape [odfs] --$
   </$CMS_VALUE(tag)$>
 $CMS_END_IF$
 ```

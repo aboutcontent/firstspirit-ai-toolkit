@@ -204,6 +204,23 @@ $CMS_VALUE(myList.filter(x -> x.get("type") == "teaser").size)$
 
 > `.empty` and `.isEmpty` / `.isEmpty()` are interchangeable; real projects use all three forms.
 
+### Short names for getters — the general rule
+
+The three spellings above are one instance of a general rule in the expression evaluator
+`[core]`: every Java method named `getX`, `isX` or `setX` is also reachable as `X` and as `x`
+(first letter lowered). So on a page reference `.getName`, `.getName()`, `.Name` and `.name` all
+call the same method, and `.isEmpty` / `.empty` likewise. The reverse also holds: a short name
+that matches no method is retried as `getName`, `setName`, `isName`. Use whichever form reads
+best, but be consistent in one project; the API documentation lists only the Java name.
+
+Two traps that follow from the rule:
+
+- **`.empty` on an object that has no `isEmpty()` silently yields `false`** `[core]`. There is no
+  error, so `$CMS_IF(!x.empty)$` always enters the branch. Check the object's type first; `.isNull`
+  is the safe test for "is there a value at all".
+- A parameterless `set…` short name is never what you want in a template; if a bare name
+  accidentally matches a setter, the call fails at runtime, not at parse time.
+
 ---
 
 ## Comments

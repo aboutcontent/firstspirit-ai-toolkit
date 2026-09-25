@@ -17,9 +17,9 @@ description: >-
   the FirstSpirit ODFS documentation for deep API lookup and firstspirit-templating-reference for
   template-language syntax.
 metadata:
-  source-commit: "7ce2e12"
-  published: "2026-09-15"
-  toolkit-version: "0.2.0"
+  source-commit: "30f3b27"
+  published: "2026-09-25"
+  toolkit-version: "0.2.1"
 ---
 
 > **Beta.** Early public release. Feedback welcome; behaviour and structure may change.
@@ -89,7 +89,7 @@ Loaded on demand — read the file that matches the question.
 | [references/beanshell-language.md](references/beanshell-language.md) | BeanShell basics: `//!BeanShell` header, dynamic typing, imports, the convenience methods (`print`, `show`, `getMethods`, `javap`), and the BeanShell console | You need the language syntax, an import rule, or a console/debug helper |
 | [references/logging-and-debugging.md](references/logging-and-debugging.md) | The four log levels, `print()` vs logging, extended logging, and how to find/trace errors | You need to emit log output or debug a failing script |
 | [references/common-patterns.md](references/common-patterns.md) | Copy-paste Access-API patterns: lock/save/unlock, safe iteration, store navigation via `SpecialistsBroker`/`UserService`, reading `FormData`, FS_BUTTON variables, `$CMS_RENDER(script:…)$` (`gc`/`result`), workflow `doTransition`, schedule variables, `Executable` classes | You need working code for a concrete scripting task |
-| [references/real-world.md](references/real-world.md) | Fuller task-shaped examples (DTA-derived): the IDE-to-script workflow, change a field value, create page+section, dynamic form dialog (`FormsAgent` + `ShowFormDialogOperation`), read a data source (iterate + `de.espirit.or` query), trigger a schedule | You want an end-to-end worked example, not just a snippet |
+| [references/real-world.md](references/real-world.md) | Fuller task-shaped getting-started examples: the IDE-to-script workflow, change a field value, create page+section, dynamic form dialog (`FormsAgent` + `ShowFormDialogOperation`), read a data source (iterate + `de.espirit.or` query), trigger a schedule | You want an end-to-end worked example, not just a snippet |
 | [references/conventions.md](references/conventions.md) | Code style (blocks, indentation, comments) and the Dos & Don'ts (imports in header, correct locking, iterators over lists, log instead of print, script-vs-module) | You are writing or reviewing a script for maintainability |
 
 ---

@@ -30,7 +30,7 @@ $CMS_VALUE(#global.node)$                   $-- current page ref --$
 $CMS_VALUE(#global.language.abbreviation)$  $-- "DE", "EN" etc. --$
 $CMS_VALUE(#global.isPreview())$            $-- true in preview (method) --$
 $CMS_VALUE(#global.canonicalUrl)$           $-- canonical URL --$
-$CMS_VALUE(#global.gca("gca_page"))$        $-- render a Global Content Area page's channel --$
+$CMS_VALUE(#global.gca("gca_page"))$        $-- render a Global Content Area page's channel [odfs] --$
 $CMS_SET(void, #global.logError("message"))$ $-- write to the generation log --$
 $CMS_SET(void, #global.stopGenerate)$       $-- stop page generation (fail-fast guard) --$
 ```
@@ -72,7 +72,9 @@ $CMS_VALUE(#row.getAttributeNames())$   $-- all column names --$
 ```
 
 > `#row` is the classic content-projection (dataset-page) context; a headless project projects
-> datasets via `FS_INDEX` / CaaS instead, so `#row` does not appear there.
+> datasets via `FS_INDEX` / CaaS instead, so `#row` does not appear there. How the projection
+> works end to end, plus `#global.pageParams` / `#global.multiPageParams` for the generated
+> pages: [content-projection.md](content-projection.md).
 
 ## The current object — `#this`
 
@@ -82,6 +84,34 @@ card, the loop item). Common in id/anchor construction:
 ```
 $CMS_VALUE(#this)$        $-- the current object --$
 $CMS_VALUE(#this.id)$     $-- e.g. "teaser-" + #this.id --$
+```
+
+## FS_CATALOG item context — `#fs_catalog`, `#card`, `#index`
+
+Inside a section or link template rendered **as an entry of an FS_CATALOG**, three system objects
+describe the entry's place in the catalog `[odfs]`:
+
+| Object | Yields | Notes |
+| --- | --- | --- |
+| `#fs_catalog.size` | Integer, number of entries | `#fs_catalog.isNull` is `true` when the template is rendered outside a catalog. **Not available when the catalog is output with `$CMS_FOR$`**; use the collection's own `.size` there. Never `$CMS_VALUE(#fs_catalog)$` bare: documented endless loop. |
+| `#card` | the `Card` (entry) | `getId` (UUID), `getTemplate`, `getItem` (its `FormData`), `toJSON`, `isNull`. Also the loop variable name convention in `$CMS_FOR(#card, st_catalog)$`. |
+| `#index` | position, 0-based | `#index.isNull` when not in a catalog; add 1 for display. |
+
+`#index` is not catalog-specific `[core]`: the same 0-based counter is set when a page's section
+list or a `FormDataList` renders section by section, together with `#sectionList` (the list being
+rendered, so `#sectionList.size` gives the sibling count). Inside a catalog the list object is
+`#fs_catalog` instead. `#sectionList` is not on the ODFS system-objects page `[verify]`; use it
+for reading exports and prefer `#fs_catalog` / explicit `$CMS_FOR$` counters in new templates.
+
+Two production idioms built on them `[observed]`:
+
+```
+$-- item template adapts to how many siblings it has --$
+$CMS_IF(#fs_catalog.size > 1)$ … two-column classes … $CMS_ELSE$ … single, centred … $CMS_END_IF$
+
+$-- unique, stable DOM id per entry without a counter variable --$
+<button aria-controls="faq-$CMS_VALUE(#card.getId)$">…</button>
+<div id="faq-$CMS_VALUE(#card.getId)$">…</div>
 ```
 
 ## Format-template context (DOM rendering)

@@ -90,3 +90,20 @@ when you hand-write JSON text, call `.toJSON` on each scalar:
 (`.convert2` before `.toJSON` is a deliberate choice when HTML entities must survive into the
 frontend — it is not a substitute for JSON escaping.) See `composition.md` → Building structured
 output.
+
+### JSON inside an HTML attribute — two sinks, two escapers
+
+A common pattern hands a JSON object to a JavaScript widget through a `data-*` attribute. The
+value has **two** sinks in a row, and `.toJSON` handles only the first:
+
+```
+⚠️ data-options='$CMS_VALUE(set_options.toJSON)$'
+   $-- valid JSON, but .toJSON does not escape the apostrophe; one ' in an editor value ends the attribute --$
+
+✅ data-options="$CMS_VALUE(set_options.toJSON.convert2)$"
+   $-- JSON-escape the values, then HTML-escape the string for the attribute; the browser decodes the entities before JSON.parse --$
+```
+
+Seen four times in one production site with a single-quoted attribute and editor-controlled
+strings inside the map `[observed]`. The rule generalises: escape for the **innermost** format
+first, then for the container.

@@ -13,7 +13,7 @@ Frequently used Java API patterns for FirstSpirit development.
 ```java
 storeElement.setLock(true, false); // acquire exclusive lock
 try {
-    storeElement.setSomeProperty(newValue);
+    // ... modify the element (form data, name, metadata) ...
     storeElement.save();
 } finally {
     storeElement.setLock(false, false); // always release
@@ -23,8 +23,8 @@ try {
 ## Service resolution via SpecialistsBroker
 
 ```java
-final PageStoreAgent pageStoreAgent = broker.requireSpecialist(PageStoreAgent.TYPE);
-final PageStore pageStore = pageStoreAgent.getMasterPageStore();
+final StoreAgent storeAgent = broker.requireSpecialist(StoreAgent.TYPE);
+final PageStore pageStore = (PageStore) storeAgent.getStore(Store.Type.PAGESTORE);
 ```
 
 ## Language-aware content access

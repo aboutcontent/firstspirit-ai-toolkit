@@ -4,8 +4,8 @@ Every editorial object in a project lives in one of **six stores**, arranged as 
 tree. Each tree node implements a specific Access-API interface. This file maps
 the trees to their interfaces and covers the base type all nodes share.
 
-> The diagram [assets/firstspirit-object-model.png](../assets/firstspirit-object-model.png)
-> (DTA "FirstSpirit-Objects" poster) shows all six trees at a glance.
+> [assets/firstspirit-object-model.md](../assets/firstspirit-object-model.md) shows all six
+> trees at a glance as text (one expansion per tree plus a parent/child index per interface).
 
 ---
 
@@ -79,6 +79,31 @@ The trailing boolean on `setLock`/`save` controls **recursion**: **pages are
 typically locked and saved recursively** (`true`), most other elements
 non-recursively (`false`). Don't pre-check the lock — attempt it and catch
 `LockException` (see `firstspirit-scripting`).
+
+**Why production Java nests two `try` blocks.** `setLock(true)` itself throws
+`LockException` and `ElementDeletedException` `[jar]`. If the lock attempt failed, the
+element is locked by someone else or gone, and calling `setLock(false)` in a `finally`
+that covers the lock attempt would try to unlock what you never locked. So the unlock
+`finally` wraps only the work *after* a successful lock, and the exceptions are caught
+outside:
+
+```
+try {
+    element.setLock(true, false);
+    try {
+        // ... mutate ...
+        element.save("comment", false);
+    } finally {
+        element.setLock(false, false);        // reached only if the lock succeeded
+    }
+} catch (LockException | ElementDeletedException e) {
+    // report; do not retry blindly
+}
+```
+
+Both exceptions are checked (`de.espirit.common.CheckedException`) `[jar]`. A bare
+`save("comment")` on a locked element with no data change still creates a **new revision**,
+which is the documented way to force a regeneration of that element downstream `[observed]`.
 
 ## `Store.Type` values
 

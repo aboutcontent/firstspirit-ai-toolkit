@@ -49,6 +49,62 @@ Correct, tested patterns for FirstSpirit visibility rules.
 
 Logic: IF text_1 empty -> show text_2, hide text_3.
 
+## Gate on a toggle — compare, never test the bare value
+
+A `CMS_INPUT_TOGGLE` has **three** states: `true`, `false` and `null` before the editor has touched
+it (ODFS: *"The initial state (no option has been selected yet) returns the value `null`. This
+should be taken into account when defining rules, especially when using the property VISIBLE."*).
+A rule whose whole condition is the toggle's bare `VALUE` therefore holds in **neither** direction
+on a fresh section, and `VISIBLE` hides the governed fields "in all other cases" — so the fields
+are invisible until the editor finds and flips a toggle they cannot see the point of.
+
+```xml
+<!-- ✗ never fires on a new section -->
+<RULE>
+    <WITH><PROPERTY name="VALUE" source="st_show_cta"/></WITH>
+    <DO><PROPERTY name="VISIBLE" source="st_cta_label"/></DO>
+</RULE>
+
+<!-- ✓ compare against the boolean constant -->
+<RULE>
+    <WITH>
+        <EQUAL>
+            <PROPERTY name="VALUE" source="st_show_cta"/>
+            <TRUE/>
+        </EQUAL>
+    </WITH>
+    <DO><PROPERTY name="VISIBLE" source="st_cta_label"/></DO>
+</RULE>
+```
+
+`<TRUE/>` and `<FALSE/>` are the rule constants for booleans (`<TEXT/>` and `<NUMBER/>` are the
+others); do not write `<TEXT>true</TEXT>`. `<NOT_NULL/>` answers a different question ("has any
+value") and cannot tell `true` from `false`. The same applies to every component whose value can
+be unset — `CMS_INPUT_CHECKBOX`, `CMS_INPUT_RADIOBUTTON`, `CMS_INPUT_COMBOBOX`, `CMS_INPUT_LIST`:
+compare against a constant or test `EMPTY`, never gate on the bare value. `[odfs]`
+
+## Address a group, not each of its fields
+
+When one condition governs every member of a `CMS_GROUP`, write **one** rule against the group.
+`source` reaches a design component through `#form.<name>`:
+
+```xml
+<RULE>
+    <WITH>
+        <EQUAL>
+            <PROPERTY name="VALUE" source="st_show_cta"/>
+            <TRUE/>
+        </EQUAL>
+    </WITH>
+    <DO><PROPERTY name="VISIBLE" source="#form.cg_cta"/></DO>
+</RULE>
+```
+
+Five identical `VISIBLE` rules for the five fields of one group is the shape a generator produces;
+one rule on the group is the shape hand-written projects use. Per-field rules are right only when
+the members are governed differently. `[odfs]` (`<PROPERTY source="#form.gadget"/>` for design
+components)
+
 ## Store-based visibility (page store only)
 
 ```xml
@@ -147,12 +203,21 @@ show a field only to certain editors:
 </RULE>
 ```
 
-## Event-triggered rules (`<ON_EVENT>`)
+## Event-triggered rules (`<ON_EVENT>`, `<ON_SAVE>`, `<ON_RELEASE>`)
 
 Besides `<RULE>`, a ruleset can carry an `<ON_EVENT>` block that fires on a form event (rather than
 continuously). It wraps the same `<WITH>`/`<DO>` and is used, for example, to toggle `VISIBLE` when
 a field changes. You will encounter it in exported rulesets alongside `<RULE>`; read it the same way
 (the `<DO>` acts when `<WITH>` holds).
+
+The rule parser accepts three such blocks directly under `<RULES>`, one per validation scope
+`[core]`: `<ON_EVENT>`, `<ON_SAVE>` and `<ON_RELEASE>`. Any other tag name at that level is a
+parsing error. A block pre-sets the scope for the `<VALIDATION>`s inside it, so a `<VALIDATION>`
+without a `scope` attribute inside `<ON_SAVE>` blocks on save, and an explicit `scope` can only
+**raise** the level (INFO → SAVE → RELEASE), never lower it below the block's. `<ON_SAVE>` and
+`<ON_RELEASE>` are not on the ODFS *rule execution time* page, which documents only
+`<RULE when="…">` `[verify]`: prefer `<RULE when="ONSAVE">` with an explicit `scope` in new
+rulesets, and read the block forms when you meet them in exports.
 
 ## Section inclusion visibility
 

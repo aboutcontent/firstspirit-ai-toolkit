@@ -10,9 +10,9 @@ before writing any code.
 > `UserService`) and `SpecialistsBroker` (so `context.requireSpecialist(...)`
 > works directly on `context`).
 
-> **Visual:** [assets/firstspirit-context-hierarchy.png](../assets/firstspirit-context-hierarchy.png)
-> is the DTA "FirstSpirit Contexts" UML poster of this whole hierarchy — handy for
-> seeing at a glance which interface inherits which methods.
+> **Visual:** [assets/firstspirit-context-hierarchy.md](../assets/firstspirit-context-hierarchy.md)
+> is a Mermaid class diagram of this whole hierarchy (plus a plain-text tree) — handy for
+> seeing at a glance which interface inherits which methods, and editable as text.
 
 ---
 

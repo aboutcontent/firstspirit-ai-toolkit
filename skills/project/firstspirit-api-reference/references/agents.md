@@ -73,6 +73,7 @@ The agents you reach for most (all via `requireSpecialist(X.TYPE)`):
 | `ServerInformationAgent` | Server version / build info |
 | `MaintenanceModeAgent`, `RunLevelAgent` | Server state (admin) |
 | `BrokerAgent` | Obtain a *project-scoped* broker from a non-project context (e.g. server schedule) |
+| `IDProviderEventAgent` | React to element saves: `addListener(Predicate<EventInfo>, Consumer<RevisionEvent>)` / `removeListener(consumer)` `[jar]`. The agent holds the consumer *weakly* — keep your own reference `[javadoc]`; obtain it from a **project** broker `[observed]` (the FirstSpirit module development documentation (ODFS), component-types "Reacting to element changes") |
 
 > Not the full set — the `de.espirit.firstspirit.agency` package has more (see
 > the FirstSpirit ODFS documentation). These cover the vast majority of script/module needs.
@@ -87,3 +88,33 @@ brokerAgent = context.requireSpecialist(BrokerAgent.TYPE);
 projectBroker = brokerAgent.getBrokerByProjectName("MyProject");
 storeAgent = projectBroker.requireSpecialist(StoreAgent.TYPE);
 ```
+
+`BrokerAgent` offers `getBrokerByProjectName(String)`, `getBrokerByProjectId(long)`,
+`getBroker(String)` and `getBroker(long)` `[jar]`. Module services prefer the **id**
+variant: a project can be renamed, its id cannot change, and `ProjectEnvironment.getProjectId()`
+or `Project.getId()` is usually already in hand. Server-scope code in modules
+(the FirstSpirit module development documentation, ODFS) uses exactly this hop to load a `PageRef` by uid:
+
+```
+projectBroker = brokerAgent.getBrokerByProjectId(project.getId());
+sea = projectBroker.requireSpecialist(StoreElementAgent.TYPE);
+pageRef = (PageRef) sea.loadStoreElement(uid, IDProvider.UidType.SITESTORE_LEAF, false);
+```
+
+## `requestSpecialist` vs `requireSpecialist`
+
+`SpecialistsBroker` has both `[jar]`: `requestSpecialist(TYPE)` returns **null** when the
+agent is not available in this context; `requireSpecialist(TYPE)` throws
+`IllegalStateException`. Use `require` when absence is a bug, `request` when it is a
+legitimate answer, which makes it the idiom for **environment detection**:
+
+```
+isSiteArchitect = broker.requestSpecialist(UIAgent.TYPE) != null;
+isContentCreator = broker.requestSpecialist(WebeditUiAgent.TYPE) != null;
+isGeneration = !isSiteArchitect && !isContentCreator;      // no UI agent at all
+```
+
+`ProjectAgent` missing (`requestSpecialist(ProjectAgent.TYPE) == null`) means the broker is
+**not bound to a project**: a server-level context, or a service still starting. The
+ContentCreator agent lives in `de.espirit.firstspirit.webedit.WebeditUiAgent` `[jar]`
+(`getLocale`, `getDisplayLanguage`, `getPreviewLanguage`, `getPreviewElement`).

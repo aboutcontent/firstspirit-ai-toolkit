@@ -37,9 +37,9 @@ description: >-
   Git-based development pipeline (Bamboo, fs-project.yaml, Template Transport) and
   Cloud constraints use the FirstSpirit Cloud documentation; this skill is the direct/local fs-cli run.
 metadata:
-  source-commit: "978980c"
-  published: "2026-09-15"
-  toolkit-version: "0.2.0"
+  source-commit: "30f3b27"
+  published: "2026-09-25"
+  toolkit-version: "0.2.1"
 ---
 
 > **Beta.** Early public release. Feedback welcome; behaviour and structure may change.
