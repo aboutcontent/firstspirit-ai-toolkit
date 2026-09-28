@@ -15,9 +15,9 @@ description: >-
   and the FirstSpirit module development documentation (ODFS) (how to package it); the FirstSpirit ODFS documentation has
   the full 146-package API for anything not distilled here.
 metadata:
-  source-commit: "468d904"
-  published: "2026-09-15"
-  toolkit-version: "0.2.0"
+  source-commit: "30f3b27"
+  published: "2026-09-25"
+  toolkit-version: "0.2.1"
 ---
 
 > **Beta.** Early public release. Feedback welcome; behaviour and structure may change.
@@ -29,9 +29,9 @@ Fast, factual lookup for the **FirstSpirit Java Access API object model** — th
 (the FirstSpirit module development documentation, ODFS). Where those skills cover *how you run code*,
 this skill answers *what objects exist, how they relate, and how you reach them*.
 
-This is the API layer taught in **DTA (Developer Training Advanced)**, distilled
-from the FirstSpirit Access API. For the exhaustive 146-package Javadoc, defer to
-the FirstSpirit ODFS documentation.
+This is a compact orientation layer distilled from the FirstSpirit Access API: enough to
+find the right interface and the right agent, not a course. For the exhaustive 146-package
+Javadoc, defer to the FirstSpirit ODFS documentation.
 
 ## Public API only
 
@@ -80,20 +80,21 @@ Loaded on demand — read the file that matches the question.
 
 | File | Covers | Read when |
 | --- | --- | --- |
-| [references/object-model.md](references/object-model.md) | The six store trees → their interfaces (the DTA "FirstSpirit-Objects" map), `StoreElement`/`IDProvider` common methods, `Store.Type`, `IDProvider.UidType`, lock/save/revert | You need to know an element's interface, how the trees nest, or the right UID/Store type |
+| [references/object-model.md](references/object-model.md) | The six store trees → their interfaces (the "FirstSpirit objects" map), `StoreElement`/`IDProvider` common methods, `Store.Type`, `IDProvider.UidType`, lock/save/revert | You need to know an element's interface, how the trees nest, or the right UID/Store type |
 | [references/stores.md](references/stores.md) | Per store: root element, the key element interfaces and their most-used methods (Page/Body/Section, Content2/Dataset, PageRef/DocumentGroup, Media, the Template interfaces, GCA) | You need methods on a specific element type |
 | [references/agents.md](references/agents.md) | `SpecialistsBroker` (`requireSpecialist`/`requestSpecialist`) and the agent catalogue — StoreAgent, StoreElementAgent, QueryAgent, LanguageAgent, ProjectAgent, OperationAgent, ImageAgent, RenderingAgent, Url/PreviewUrlAgent, ModuleAdminAgent, … | You need to reach a store/service/operation and don't know which agent |
 | [references/values-and-data.md](references/values-and-data.md) | Value objects: `FormData`/`FormField`, `Language`/master language, `TemplateSet`, Content-Store `Dataset`/`Entity`/`EntityType`, editor values | You need to read/write field values, languages, or dataset content |
 | [references/querying.md](references/querying.md) | `QueryAgent` usage and the FirstSpirit query (`fs.*`) syntax with worked examples | You need to search the repository from code |
 | [references/references.md](references/references.md) | `ReferenceEntry` and the reference graph: `getOutgoingReferences()` / `getIncomingReferences()` / `hasIncomingReferences()` on every `StoreElement`, the nullable-`Set` and deprecated-namesake traps, the type constants, `isBroken()` semantics, and the "all media on a page and its sections" recipe | You need to know what an element points at, what points at it, or which references are broken |
 
-Visual: [assets/firstspirit-object-model.png](assets/firstspirit-object-model.png)
-— the DTA object-model poster (store trees mapped to interfaces).
+Visual: [assets/firstspirit-object-model.md](assets/firstspirit-object-model.md)
+— the six store trees mapped to their interfaces (text trees + element index).
 
 ---
 
-*Sources: FirstSpirit Access API (`fs-api/`, bundled in the FirstSpirit ODFS documentation) and
-the DTA "FirstSpirit Objects" / "FirstSpirit Contexts" training posters.*
+*Sources: FirstSpirit Access API (`fs-api/`, bundled in the FirstSpirit ODFS documentation); the object and
+context maps in `assets/` are text renderings of the classic "FirstSpirit Objects" and
+"FirstSpirit Contexts" overview diagrams.*
 
 <!-- feedback-footer:v1 -->
 

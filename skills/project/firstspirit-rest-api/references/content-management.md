@@ -62,6 +62,8 @@ curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
 ```
 
 ### Add Section to Body
+
+**Up to `0.0.23-beta`** (verified live) the section name is the last path segment:
 ```bash
 curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
   -X PUT -H "Content-Type: application/json" \
@@ -70,8 +72,23 @@ curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
 ```
 The `{sectionName}` in the URL (`hero`) becomes the section's name.
 
+**From `0.0.24-beta`** `[core]` sections are created with POST and addressed by their numeric
+`id`, because a body may hold several sections of the same name:
+```bash
+curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"name":"hero","templateUid":"hero_teaser","index":0}' \
+  "$FS_REST_BASE_URL/projects/$FS_PROJECT_ID/pages/homepage/bodies/content/sections/"
+# → SectionDTO; keep .id for every later call on this section
+```
+`index` is 0-based; omit it or pass an out-of-range value to append. Creation and positioning
+are not atomic: if positioning fails the section stays appended. Do not retry blindly — read the
+body (`GET …/bodies/content`) and delete the stray section by id. Section ids are also in the
+body's section list, so an existing section is found by listing the body, not by guessing.
+
 ### Delete Section
 ```bash
+# ≤ 0.0.23-beta: by name        ≥ 0.0.24-beta: by numeric id (e.g. …/sections/4711)
 curl -s -u "$FS_USERNAME:$FS_PASSWORD" -X DELETE \
   "$FS_REST_BASE_URL/projects/$FS_PROJECT_ID/pages/homepage/bodies/content/sections/hero"
 ```
@@ -83,6 +100,8 @@ curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
   -d '{"name":"new_name"}' \
   "$FS_REST_BASE_URL/projects/$FS_PROJECT_ID/pages/homepage/bodies/content/sections/hero/rename"
 ```
+Same `{section}` rule: name up to `0.0.23-beta`, numeric id from `0.0.24-beta`. The examples
+below keep the name form; substitute the id on newer servers.
 
 ---
 
@@ -102,6 +121,14 @@ The whole-form response is an object wrapping the editor list: `{ "editors": [ �
 List editor names with `jq -r '.editors[].name'` (not `.[].name`). Individual
 `GET …/form/{editor}` responses are a flat FormEditorDTO (`name`, `type`,
 `configuration`, `content`, `description`, `language`).
+
+Use the whole-form GET for the **editor list only**. This is by design, not a defect `[core]`:
+the page and section `…/form` endpoints return a `FormSummaryDTO` whose editors carry `name`,
+`type` and `description` and **no content field** (a production team read this as "every
+editor is `content: null`" `[observed]`). Content comes from the per-editor GET. The only
+whole-form response *with* content is the `FormDTO` used for FS_CATALOG cards; there a field
+that exists in the template but was never stored in this element yields `content: null`
+(stale content after a template change) instead of an error.
 
 ### Read Single Editor (with content)
 ```bash
@@ -146,6 +173,15 @@ curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
 **Never use `-d '…'` for JSON containing German content.** Apostrophes in values like `Mehr erfahren` or quotes in text break shell parsing. Write to a file and use `--data-binary @file.json`.
 
 For language-specific editors: append `/{lang}` to URL (UPPERCASE: `DE`, `EN`).
+
+**A 200 is not proof of a write.** Two traps seen on production projects:
+- PATCHing a language path (`…/form/{editor}/DE`) on an editor whose GOM says
+  `useLanguages="no"` answered **200 and changed nothing** `[observed]` on an FS_CATALOG. Check
+  the GOM before choosing the language-scoped URL.
+- A GET straight after a write may show the server's in-memory state rather than what was
+  persisted; one team reported reads that "confirmed" values which never reached the database
+  `[verify]`. Until the smoke test reproduces this, confirm important writes with a second,
+  fresh read (new request, a moment later) or in ContentCreator.
 
 **Parallelize** independent GETs and independent PATCHes on the same section. Only serialize when one call depends on another's output.
 
@@ -412,6 +448,14 @@ curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
 ```
 
 Types: `PICTURE`, `FILE`, `ANIMATION`
+
+> **`PICTURE` means "FirstSpirit will process this", not "this is an image".** WebP and SVG
+> uploaded as `PICTURE` are accepted (201 on create, 2xx on upload), `$CMS_REF(media:…)$` renders a
+> URL, and the served `…/ORIGINAL/<name>` is a **broken image** — the server cannot decode them
+> for resolutions. Nothing on the write path reports it. Upload WebP and SVG as `FILE` (no
+> resolutions, served as-is), and keep `PICTURE` for JPEG, PNG and GIF. Since the type cannot be
+> changed in place (see the version-drift note above), decide it from the bytes before the POST.
+> *(Observed 2026-08-08 on one project, 56 media — PS website-migration tool.)*
 
 ### Upload File Data
 ```bash

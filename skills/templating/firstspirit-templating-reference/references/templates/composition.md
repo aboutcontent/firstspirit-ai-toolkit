@@ -46,6 +46,59 @@ Format template:
 </div>
 ```
 
+Always pass **named** arguments; positional arguments do not occur in production templates. A
+format template has no form definition, so **nothing declares or checks its parameters**: a
+misspelled name is a silently empty value, an extra argument is silently ignored. Document the
+contract in a `$-- Parameters: … --$` header at the top of the format template; it is the only
+signature the template will ever have.
+
+### `$CMS_RENDER$` is a macro, not a function call
+
+The called template executes **in the caller's scope**. Consequences:
+
+- **An omitted parameter is `null`, not empty.** Normalise on the callee's first lines and test
+  `isNull` before `isEmpty`, or the template dies on the first caller who leaves an argument out:
+  ```
+  $CMS_SET(setElement,    if(!element.isNull, element, ""))$
+  $CMS_SET(setResolution, if(!resolution.isNull && !resolution.isEmpty, resolution, "resDesktop"))$
+  ```
+- **The callee can read the caller's fields without being passed them** (a page head template
+  reading `pt_title` directly). That is an undeclared dependency; either pass the value or name
+  it in the header comment.
+- **`editorId()` without arguments resolves against the caller's section**, which is what lets a
+  shared ContentCreator wrapper stamp the edit frame around somebody else's section
+  (see `real-world.md`).
+- **`$CMS_SET$` does not cross a template boundary in the other direction**: a container cannot
+  set a variable for its `FS_CATALOG` item template to read. Only `#global.section.id` and
+  `#index` cross.
+- **Prefix locals** (`set…`) so a partial does not clobber a caller variable, and **reset** any
+  variable you pre-set for a format template invoked implicitly (a `<FORMATS>` entry or a link
+  template), or it leaks into the next field:
+  ```
+  $CMS_SET(setDomAttr, "class=\"lead\"")$
+  $CMS_VALUE(st_text)$
+  $CMS_SET(setDomAttr, "")$
+  ```
+
+### Getting a value back
+
+Almost every render emits its markup where it stands. To capture the output instead, use the
+**block form** of `$CMS_SET$`; the expression form `$CMS_SET(x, $CMS_RENDER(…)$)$` does not occur
+in production templates:
+
+```
+$CMS_SET(set_rendered)$$CMS_RENDER(template:"ft_card", title:st_headline)$$CMS_END_SET$
+$CMS_VALUE(set_rendered.toString)$
+```
+
+Two other return channels seen in practice: a map passed as a parameter that the callee `.put()`s
+into (see *Composing across templates* below), and a write to a page-level context
+(`$CMS_SET(#global.context("PAGE")["psFavicon"], set_path)$`) when the result is needed far away.
+
+> Sources: the `$CMS_RENDER$` and format-template ODFS pages, plus a 2026 survey of format-template
+> call sites across several live FirstSpirit projects (named arguments, `set*` normalisation, block-form
+> capture). `[odfs]` for the mechanics, `[observed]` for the idioms.
+
 ---
 
 ## `$CMS_TRIM$` — control output whitespace

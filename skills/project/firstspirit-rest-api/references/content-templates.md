@@ -23,10 +23,25 @@ curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
 ```bash
 curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
   -X POST -H "Content-Type: application/json" \
-  -d '{"uid":"standard_page","name":"Standard Page","description":"Default page layout","bodies":["content","sidebar"]}' \
+  -d '{"uid":"standard_page","name":"Standard Page","description":"Default page layout",
+       "bodies":[{"name":"content","allowedTemplates":["hero_teaser","text"]},
+                 {"name":"sidebar","allowedTemplates":[]}]}' \
   "$FS_REST_BASE_URL/projects/$FS_PROJECT_ID/templates/page-templates/"
 ```
-The `bodies` array defines the content areas (Body names) the page template provides.
+The `bodies` array defines the content areas the page template provides. Each entry is a
+`TemplateBodyDTO {name, allowedTemplates}` (the OpenAPI document), not a bare string.
+
+> **Two things about `bodies` that the API document does not say** *(observed live by the PS
+> website-migration tool, 2026-08-07/08 — one project each):*
+> - **`allowedTemplates` is optional to read and required to write.** A body sent as
+>   `{"name":"chrome"}` answered `500 … Instantiation of [TemplateBodyDTO] value failed`. Send
+>   the key always, `[]` for a body that allows nothing. The section templates it names must
+>   already exist (import them first); an allow-list that was imported earlier in the same run
+>   was read back intact.
+> - **Bodies are create-only.** No resource adds a content area to an existing page template.
+>   A template created without the right bodies is repaired only by `DELETE` and re-create,
+>   and every `PUT …/pages/{uid}/bodies/{body}/sections/{name}` against a body name that does
+>   not exist answers 404. Decide the body names before the first POST.
 
 ### Format Template
 ```bash
@@ -89,6 +104,14 @@ curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
 > return an **empty body** — do not read it as a failed write. Send `Accept: */*`; a JSON-only
 > `Accept` can `500` here. GOM and rules go as **raw XML**. *(Confirmed live against a real
 > project — source: PS website-migration tool, `knowledge/fs-facts.md` §1.)*
+>
+> **A GOM the parser rejects leaves the template CREATED WITH NO FORM.** The `PUT` answers
+> `400 Parsing error: Unsupported Tag '<tag>'! (at line N, column M)` naming the offending element,
+> and the template stays in the project as an empty shell that renders nothing. The one shape that
+> trips this in practice: `<LINKEDITORS>` takes `<LINKEDITOR name="…"/>` children, while
+> `<FORMATS>` takes `<TEMPLATE name="…"/>` — a `<TEMPLATE>` inside `<LINKEDITORS>` is the 400.
+> Re-`PUT` the corrected GOM; nothing else needs undoing. *(Observed twice on two projects,
+> 2026-08-27 — PS website-migration tool.)*
 
 ### Read Parsed Form Summary (read-only)
 Returns JSON list of editors with name, type, description — no content values:
@@ -197,6 +220,18 @@ Response:
     <LANGINFOS><LANGINFO lang="*" label="Product"/></LANGINFOS>
 </FS_DATASET>
 
+<!-- Rich text with an allow-list of format templates AND of link templates -->
+<CMS_INPUT_DOM name="st_body" hFill="yes" useLanguages="yes">
+    <LANGINFOS><LANGINFO lang="*" label="Body"/></LANGINFOS>
+    <FORMATS>
+        <TEMPLATE name="b"/>              <!-- FORMATS takes TEMPLATE … -->
+        <TEMPLATE name="i"/>
+    </FORMATS>
+    <LINKEDITORS>
+        <LINKEDITOR name="internal_link"/> <!-- … LINKEDITORS takes LINKEDITOR, never TEMPLATE -->
+    </LINKEDITORS>
+</CMS_INPUT_DOM>
+
 <!-- Link -->
 <CMS_INPUT_LINK name="st_link" hFill="yes" useLanguages="yes">
     <LANGINFOS><LANGINFO lang="*" label="Link"/></LANGINFOS>
@@ -273,22 +308,48 @@ curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
 ```
 
 ### Write Channel-Source
+
+Template code goes in a **file**, never inline in `-d '…'`: a single apostrophe in the markup
+(`$CMS_VALUE(#nav.label)$'s`, a German quote) ends the shell string. Same rule as for JSON.
+
 ```bash
-curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
-  -X PUT -H "Content-Type: text/plain" \
-  -d '$CMS_IF(!st_headline.isEmpty)$
+# hero_teaser.html
+$CMS_IF(!st_headline.isEmpty)$
 <section class="hero">
     <h1>$CMS_VALUE(st_headline)$</h1>
     $CMS_IF(!st_text.isEmpty)$
     <div class="hero__text">$CMS_VALUE(st_text)$</div>
     $CMS_END_IF$
     $CMS_IF(!st_image.isEmpty)$
-    <img src="$CMS_REF(st_image)$" alt="$CMS_VALUE(st_headline)$" />
+    <img src="$CMS_REF(st_image)$" alt="$CMS_VALUE(st_headline.convert2)$" />
     $CMS_END_IF$
 </section>
-$CMS_END_IF$' \
+$CMS_END_IF$
+```
+
+```bash
+curl -s -u "$FS_USERNAME:$FS_PASSWORD" \
+  -X PUT -H "Content-Type: text/plain" \
+  --data-binary @hero_teaser.html \
   "$FS_REST_BASE_URL/projects/$FS_PROJECT_ID/templates/section-templates/hero_teaser/channel-sources/html"
 ```
+
+**The loop that keeps REST-driven template work reviewable** (a marketing-site rebrush ran
+53 templates through it `[observed]`):
+
+1. **GET and keep** the current source in a git-tracked directory before every PUT. The PUT
+   replaces the whole channel; there is no server-side history you can diff against.
+2. **Balance-check before PUT:** every `$CMS_IF$` has its `$CMS_END_IF$`, `$CMS_FOR$` /
+   `$CMS_END_FOR$`, `$CMS_SET(x)$` block form / `$CMS_END_SET$`, `$CMS_SWITCH$` /
+   `$CMS_END_SWITCH$`, `<CMS_ARRAY_ELEMENT>` pairs and `<![CDATA[ … ]]>` inside
+   `<CMS_HEADER>`. The endpoint accepts unbalanced code; the preview fails later.
+3. **PUT**, then a human redeploys or previews and checks the page. Template changes do not
+   show in the delivered site until generation runs.
+4. **GET again** into the same directory and commit, so the repository is the export.
+
+Note that only channel sources travel this way. GOM and Rules have their own endpoints, and
+database-schema templates expose no channel source over REST at all (the schema collection can
+only be listed).
 
 ### List Available Channel-Sources
 ```bash

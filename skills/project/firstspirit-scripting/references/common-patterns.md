@@ -37,6 +37,25 @@ locked and saved recursively** (`setLock(true, true)` / `save(comment, true)`),
 most other elements non-recursively (`false`) — the second boolean is the
 recursive flag.
 
+**Datasets: a save writes only what changed.** `Dataset.getEntity()` `[jar]` hands you the
+`Entity`; `entity.setValue(name, value)` `[jar]` followed by `ds.save()` persists the
+attributes whose value **differs** from the loaded one. Setting a value that is `equals()` to
+the current one is a no-op, and the save returns without error. Consequences seen in production
+`[observed]`:
+
+- Rebuilding a DOM or reference value from scratch and setting it does not "refresh" anything.
+- **Verify with a fresh read**, not the object you just saved: reload the dataset in a new
+  script run (or look in ContentCreator) and compare. The in-memory object still holds what you
+  set, whether or not it was written.
+- For relation lists, **mutate the list you get** from `getValue` (add/remove on it) rather than
+  assigning a new `ArrayList`; the persistence layer expects its own list type and rejects a
+  replacement with an "illegal type" error.
+
+Do **not** reach past the public interface to force a write: one team used reflection on the
+private fields of the value wrapper to defeat the equality check. That depends on internal class
+layout and breaks on any FirstSpirit upgrade. If a legitimate change is not persisting, the
+value is equal to the stored one, or the dataset was not locked; fix that.
+
 ## Safe iteration over children
 
 Child lists (especially recursive ones) can be huge — iterate, never materialise a

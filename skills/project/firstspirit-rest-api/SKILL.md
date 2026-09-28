@@ -9,9 +9,9 @@ description: >
   media upload, content search. Also use when the user mentions "FirstSpirit REST API" or asks how to read/write
   content via the API.
 metadata:
-  source-commit: "2556131"
-  published: "2026-09-15"
-  toolkit-version: "0.2.0"
+  source-commit: "30f3b27"
+  published: "2026-09-25"
+  toolkit-version: "0.2.1"
 ---
 
 > **Beta.** Early public release. Feedback welcome; behaviour and structure may change.
@@ -193,6 +193,16 @@ GET    /projects/{id}/templates/schemas/{schemaUid}
 Note: Format templates have no GOM or Rules endpoints. Link/Page/Section templates have all of GOM, Rules and channel-sources.
 
 ### Pages
+
+> **Version drift — sections are addressed by numeric id from `0.0.24-beta`** `[core]`. Up to
+> `0.0.23-beta` (the version this skill was verified against live) `{section}` is the section
+> **name** and a section is created with `PUT …/sections/{name}`. From `0.0.24-beta` the path
+> variable is the section's numeric `id` (from `GET …/bodies/{body}` or the create response),
+> because names are not unique within a body, and creation is `POST …/sections/` with
+> `{"name","templateUid","index"?}` (`index` 0-based, omitted or out of range appends). Check
+> the server's version (`/rest/v3/api-docs` `info.version`) before choosing the form; both are
+> shown below.
+
 ```
 GET|POST /projects/{id}/pages/
 GET|DELETE /projects/{id}/pages/{uid}
@@ -201,9 +211,10 @@ POST   /projects/{id}/pages/{uid}/actions
 PATCH  /projects/{id}/pages/{uid}/rename                 # JSON: {"name","language"} (display name, not uid)
 GET    /projects/{id}/pages/{uid}/bodies/
 GET    /projects/{id}/pages/{uid}/bodies/{body}
-PUT    /projects/{id}/pages/{uid}/bodies/{body}/sections/{section}
-DELETE /projects/{id}/pages/{uid}/bodies/{body}/sections/{section}
-GET    /projects/{id}/pages/{uid}/bodies/{body}/sections/{section}/form
+PUT    /projects/{id}/pages/{uid}/bodies/{body}/sections/{name}      # ≤ 0.0.23-beta: JSON {"templateUid"}; name from the URL
+POST   /projects/{id}/pages/{uid}/bodies/{body}/sections/           # ≥ 0.0.24-beta: JSON {"name","templateUid","index"?} → SectionDTO with "id"
+DELETE /projects/{id}/pages/{uid}/bodies/{body}/sections/{section}  # {section} = name ≤ 0.0.23, numeric id ≥ 0.0.24
+GET    /projects/{id}/pages/{uid}/bodies/{body}/sections/{section}/form   # editor list only (FormSummaryDTO, no content)
 GET|PATCH /projects/{id}/pages/{uid}/bodies/{body}/sections/{section}/form/{editor}
 GET|PATCH /projects/{id}/pages/{uid}/bodies/{body}/sections/{section}/form/{editor}/{lang}
 PATCH  /projects/{id}/pages/{uid}/bodies/{body}/sections/{section}/rename  # JSON: {"name":"newName"} (RenameSectionRequestDTO — name only, no language)
@@ -283,6 +294,11 @@ GET|PUT /projects/{id}/scripts/{name}/template-sets/{ts}  # text/plain
 POST   /projects/{id}/scripts/{name}/execute           # JSON in
 ```
 
+> **`POST /scripts/` answers `500`, not `409`, for a name that already exists** — the template
+> collections answer 409 on a duplicate, the scripts collection has no conflict handling. Do not
+> read the status; read the element back (`GET …/scripts/{name}`) and treat a 2xx as "exists".
+> *(Observed 2026-08-07 — PS website-migration tool.)*
+>
 > **`POST /scripts/` does not fully honour the create DTO** (verified 0.0.23-beta): the stored
 > element comes back with `type: MENU` regardless of the `type` you send, and `description` is
 > dropped (`null`). Only `name` and `location` are reliably applied. Create the script, then set
@@ -294,11 +310,33 @@ POST   /projects/{id}/scripts/{name}/execute           # JSON in
 > treat a non-empty body as an error and verify success by read-back, not by the response. JSON in
 > the request body binds as script context variables; the REST execute context has no
 > `getElement()`, so element-dependent scripts cannot run here.
+>
+> **Do not build on the "throw to return" trick.** Because only errors come back, one project
+> team made scripts `throw new RuntimeException(result)` and read the text out of the 500
+> response `[observed]`. It works for a one-off interactive probe and for nothing else: every
+> success is an HTTP error, real failures are indistinguishable from results, and automation
+> cannot tell them apart. The same goes for create → upload → execute → delete throwaway
+> scripts as a general RPC channel. If a write is not available through REST, say so and use a
+> proper script context or an `Executable` (`firstspirit-scripting`), not the execute endpoint.
 
 ### Global Content
 ```
 GET    /projects/{id}/global-content/
 GET    /projects/{id}/global-content/project-properties
+PATCH  /projects/{id}/global-content/project-properties/form/{editor}
+```
+
+Added in `0.0.24-beta` (read from the module source, not yet probed live `[core]`) — GCA pages get
+the same body/section/form model as pages, sections by numeric id:
+
+```
+POST   /projects/{id}/global-content/                                  # create GCA page
+GET|DELETE /projects/{id}/global-content/{gcaUid}
+GET    /projects/{id}/global-content/{gcaUid}/bodies/     GET .../bodies/{body}
+POST   /projects/{id}/global-content/{gcaUid}/bodies/{body}/sections/  # {"name","templateUid","index"?}
+DELETE /projects/{id}/global-content/{gcaUid}/bodies/{body}/sections/{sectionId}
+GET|PATCH /projects/{id}/global-content/{gcaUid}/form/{editor}[/{lang}]
+GET|PATCH /projects/{id}/global-content/{gcaUid}/bodies/{body}/sections/{sectionId}/form/{editor}[/{lang}]
 ```
 
 ### Folders
@@ -349,11 +387,18 @@ Actions: `copy`, `release`. Options for release:
 
 | Code | Meaning |
 |------|---------|
-| 400 | Invalid input, unsupported operation, duplicate name |
+| 400 | Invalid input, unsupported operation (e.g. writing `CMS_INPUT_DOMTABLE`), unreadable JSON body |
+| 403 | FirstSpirit denied access to the element (permissions of the authenticated user) `[core]` |
 | 404 | Element/language/template not found |
-| 409 | Conflict (duplicate reference) |
+| 409 | Conflict: duplicate name or reference name, element locked by another session, element moved `[core]` |
+| 410 | Element was deleted `[core]` |
+| 413 | Upload too large `[core]` |
 | 415 | Wrong Content-Type (some endpoints return `500` instead — see Critical Content-Type Rules) |
+| 429 | Rate limit or login throttle (`fs.rest.rateLimit.*` on the server; too many failed logins) `[core]` |
 | 500 | Server error — also seen for: wrong Content-Type on `/form/{editor}`; `{uid}` sent to a `/rename` (wants `{name,language}`); missing/`null` `configuration` on an FS_CATALOG editor; `null` RADIOBUTTON in a constructed card |
+
+Codes marked `[core]` come from the module's exception handler (source at `0.0.25-beta-SNAPSHOT`);
+the smoke test has not provoked them all.
 
 <!-- feedback-footer:v1 -->
 

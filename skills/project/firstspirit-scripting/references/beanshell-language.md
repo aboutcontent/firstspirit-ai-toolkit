@@ -15,7 +15,7 @@ sloppiness.
 ## Version and restrictions
 
 FirstSpirit embeds **BeanShell 2**, at roughly **JDK 1.5 language level**. Known
-limits to code around (per the DTA training):
+limits to code around:
 
 - **Generics are limited:** no nested generics, no wildcards (`<?>`), and no casts
   to parameterised types. Use raw types / `Object` and cast to the concrete type.

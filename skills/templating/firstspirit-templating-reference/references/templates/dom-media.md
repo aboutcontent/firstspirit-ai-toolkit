@@ -10,6 +10,14 @@
 $CMS_VALUE(st_text)$
 ```
 
+**A DOM value is block markup — render it into a block container, never into `<p>`.** Every
+block in the value resolves to the format template of the same name, so a DOM editor that allows
+`p` emits its own `<p>…</p>`. Wrapping the output in a paragraph gives
+`<p class="prose"><p>…</p></p>`: paragraphs cannot nest, the browser closes the outer one at the
+inner tag, and the wrapper's class stops applying to the rest of the value. Use a `<div>` (or the
+semantic block the design calls for) and keep the classes on that. The paragraph is the format
+template's to emit.
+
 ### DOM normalized (avoids extra wrapper tags)
 
 ```
@@ -27,7 +35,7 @@ $CMS_VALUE(st_text.toText(false))$
 ```
 $CMS_VALUE(st_text.toText(true))$
 $CMS_VALUE(st_text.normalize.toText(true))$   $-- normalise nesting first --$
-$CMS_VALUE(st_text.renderToString())$         $-- render via format templates, capture as a string --$
+$CMS_VALUE(st_text.renderToString())$         $-- render via format templates, capture as a string [odfs] --$
 ```
 
 `.renderToString()` runs the DOM through its assigned format templates (as normal rendering would)

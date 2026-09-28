@@ -1,17 +1,19 @@
 # Real-world scripting patterns
 
-End-to-end examples, grounded in the **DTA (Developer Training Advanced)** training
-examples and the analysed SE/Core project scripts. Where
+End-to-end getting-started examples, drawn from a set of small example scripts and the
+analysed SE/Core project scripts. Where
 [common-patterns.md](common-patterns.md) gives the atomic snippets (lock/save,
-iteration, store navigation), this file shows fuller, task-shaped scenarios.
+iteration, store navigation), this file shows fuller, task-shaped scenarios. They are
+deliberately minimal: a starting shape for each task, not a complete treatment of the
+Access API.
 
-> The DTA examples are written as standalone launcher classes with a
+> The examples are written as standalone launcher classes with a
 > `start(broker)` method and a `context` field, so they can be run from an IDE.
 > **In an actual FirstSpirit script you already have `context`** — drop the class
 > wrapper and use `context` (and `broker`/agents from it) directly. See the
 > "IDE-to-script workflow" below.
 >
-> Provenance/verification: distilled from DTA training sources; the same
+> Provenance/verification: distilled from small example sources; the same
 > expert-verification caveat as the rest of this skill applies. The advanced SE/Core
 > patterns (script-as-library, JS bridge, AI Suite) are catalogued in the skill's
 > development notes and are not yet distilled into this reference.
@@ -20,7 +22,7 @@ iteration, store navigation), this file shows fuller, task-shaped scenarios.
 
 ## IDE-to-script workflow (develop with type-safety, ship as a script)
 
-A practical DTA technique: prototype in a real IDE against the Access API (so you
+A practical technique: prototype in a real IDE against the Access API (so you
 get completion and type checks), then paste into a BeanShell script.
 
 1. Write a class with a `start(SpecialistsBroker broker)` method; declare the
@@ -37,7 +39,7 @@ Mind BeanShell's limits while coding (e.g. no real generics — see
 ## Change a field value on a page (canonical write)
 
 The full lock → read `FormData` → set → write back → save → unlock, language-aware
-(DTA Example 2):
+(example 2):
 
 ```java
 //!BeanShell
@@ -63,7 +65,7 @@ try {
 }
 ```
 
-## Create a page and a section (DTA Example 3)
+## Create a page and a section (example 3)
 
 ```java
 //!BeanShell
@@ -82,7 +84,7 @@ page.getBodyByName("Content center").createSection("My section", secTpl);
 // then lock/save the page (see the write pattern above)
 ```
 
-## Show a dynamic form dialog from a script (DTA Example 5)
+## Show a dynamic form dialog from a script (example 5)
 
 Build a form at runtime with `FormsAgent` and show it with
 `ShowFormDialogOperation` — for wizards or when the inputs depend on runtime state.
@@ -125,7 +127,7 @@ if (result != null) {
 
 (Pre-5.2 the `perform(...)` could throw `InvalidRulesetException` — catch it.)
 
-## Read a data source — two ways (DTA Example 6)
+## Read a data source — two ways (example 6)
 
 Iterate the datasets, or run a real query against the schema session.
 

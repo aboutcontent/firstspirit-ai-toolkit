@@ -120,6 +120,6 @@ Javadoc says only "the referenced node"; confirm on a live project before relyin
 
 ## Related
 
-- The element types you get back (`Media`, `Page`, …): [references/stores.md](references/stores.md).
+- The element types you get back (`Media`, `Page`, …): [stores.md](stores.md).
 - The inverse direction — resolving a **reference descriptor string** to an element —
-  is `StoreElementAgent.loadReference(...)`: [references/agents.md](references/agents.md).
+  is `StoreElementAgent.loadReference(...)`: [agents.md](agents.md).
