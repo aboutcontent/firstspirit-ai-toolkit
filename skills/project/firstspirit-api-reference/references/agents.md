@@ -50,7 +50,7 @@ The agents you reach for most (all via `requireSpecialist(X.TYPE)`):
 | Agent | Gives you |
 | --- | --- |
 | `StoreAgent` | Store roots by `Store.Type` (+ release flag) |
-| `StoreElementAgent` | `loadStoreElement(uid, uidType, release)`, `loadReference(...)` |
+| `StoreElementAgent` | `loadStoreElement(uid, uidType, release)`, `loadReference(...)`; typed variants that take the element class instead of a `UidType`: `requireStoreElement(uid, Page.class[, release])`, and `requestStoreElement(...)` returning `Optional<T>` |
 | `QueryAgent` | Repository search via `fs.*` query syntax — see [querying.md](querying.md) |
 | `ProjectAgent` | The current `Project`, its languages, resolutions, config |
 | `LanguageAgent` | Project `Language`s, the master language, language lookup |
@@ -61,7 +61,7 @@ The agents you reach for most (all via `requireSpecialist(X.TYPE)`):
 | `FeatureInstallAgent` / feature agents | Entry point to the ContentTransport API (feature transport between projects) |
 | `TransferAgent` | Drag-and-drop / clipboard transfer handling |
 | `ImageAgent` | Load/transform images from media |
-| `RenderingAgent` | Render a template/element to a string from code |
+| `RenderingAgent` | Render a template/element to a string from code: `createRenderer(element)` returns a builder (`language(..)`, `templateSet(..)`, `context(pageRef)`, `additionalContext(..)`, `preview()`, …) finished by `render()`; `createRenderer(String)` renders template source text |
 | `UrlAgent` / `UrlCreatorAgent` | Generated URLs for elements/media |
 | `PreviewUrlAgent` / `ClientUrlAgent` | Preview URLs; client (SiteArchitect/ContentCreator) URLs |
 | `SnippetAgent` | The editor snippet (label/thumbnail) for an element |
@@ -69,7 +69,7 @@ The agents you reach for most (all via `requireSpecialist(X.TYPE)`):
 | `RuleValidationAgent` / `ValidationAgent` | Run rule/element validation from code |
 | `ModuleAdminAgent` | Install/configure modules and components (admin) |
 | `ScheduleTaskAgent` | Start/inspect schedule tasks |
-| `ScriptAgent` | Execute a project script by identifier from code |
+| `ScriptAgent` | Execute a project script by identifier from code: `execute("script:<uid>", params)`; a bare UID or script source throws `IllegalArgumentException` (the message names `class:<FQCN>` for module executables). Also `execute(Script, params)`, `execute(Executable, params)` |
 | `ServerInformationAgent` | Server version / build info |
 | `MaintenanceModeAgent`, `RunLevelAgent` | Server state (admin) |
 | `BrokerAgent` | Obtain a *project-scoped* broker from a non-project context (e.g. server schedule) |
