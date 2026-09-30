@@ -84,6 +84,9 @@ has been compiled by a more recent version of the Java Runtime (class file versi
 this version of the Java Runtime only recognizes class file versions up to 61.0
 ```
 
+The jar states its level in `META-INF/MANIFEST.MF` as `X-Compile-Release-JDK` (e.g. `21` for 5.2.260510, `17` for
+5.2.251308): `unzip -p fs-isolated-runtime.jar META-INF/MANIFEST.MF | grep X-Compile-Release-JDK`.
+
 Use a JDK/JRE whose major version is at least the jar's. A FirstSpirit client
 install already bundles a matching runtime — on macOS,
 `~/.firstspirit/FSLauncher/jre/<ver>/jre-mac-arm/<jdk>/Contents/Home` (or

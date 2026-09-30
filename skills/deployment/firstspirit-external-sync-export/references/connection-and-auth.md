@@ -6,17 +6,18 @@ looks like a login error. They are distinct — read the message.
 
 ## Connection options
 
-fs-cli's global connection options (before the command word):
+fs-cli's global connection options (before the command word). Each one falls back to an environment variable
+that fs-cli reads itself: the option wins, then the variable, then the default.
 
-| Option | Meaning | Note |
-|---|---|---|
-| `-h`, `--host` | server host | hostname only, no scheme |
-| `-port` | port | default `8000`; Cloud/HTTP(S) is `443` |
-| `-c`, `--conn-mode` | `HTTP` \| `HTTPS` \| `SOCKET` | default `HTTP` |
-| `-sz`, `--servletzone` | servlet zone | default `/` |
-| `-u`, `--user` | FirstSpirit login | |
-| `-pwd`, `--password` | password | **never inline in a shared shell** |
-| `-p`, `--project` | project **name** | not the numeric id |
+| Option | Env variable | Meaning | Note |
+|---|---|---|---|
+| `-h`, `--host` | `fshost` | server host | hostname only, no scheme |
+| `-port` | `fsport` | port | default `8000`; Cloud/HTTP(S) is `443` |
+| `-c`, `--conn-mode` | `fsmode` | `HTTP` \| `HTTPS` \| `SOCKET` | default `HTTP` |
+| `-sz`, `--servletzone` | `fsservletzone` | servlet zone | default `/` |
+| `-u`, `--user` | `fsuser` | FirstSpirit login | |
+| `-pwd`, `--password` | `fspwd` | password | **never inline in a shared shell** |
+| `-p`, `--project` | `fsproject` | project **name** | not the numeric id |
 
 ### Choosing the connection mode
 
@@ -89,6 +90,8 @@ Notes:
   (`FS_USERNAME` / `FS_PASSWORD`, `FS_REST_BASE_URL`, `FS_PROJECT_ID`) is fine —
   map its names onto `-u` / `-pwd`. Confirm its **non-secret** fields (base URL,
   project id) point at the intended server before trusting its secrets.
+- If the file uses fs-cli's own names (`fsuser`, `fspwd`, see the table above), fs-cli picks them up after
+  `set -a; . file; set +a` and no `-u` / `-pwd` is needed. That also keeps the password out of the process list.
 - `-pwd` has a documented default of `Admin`; never rely on it.
 
 ## Test before you export
